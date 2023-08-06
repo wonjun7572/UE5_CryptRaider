@@ -43,8 +43,7 @@ void UGrabber::Grab()
 	if (PhysicsHandle == nullptr)
 		return;
 
-	// 현재 월드를 부르는 함수 
-	//UWorld* World = GetWorld();
+	UWorld* World = GetWorld();
 
 	FHitResult HitResult;
 	bool HasHit = GetGrabbableInReach(HitResult);
@@ -52,24 +51,29 @@ void UGrabber::Grab()
 	if(HasHit)
 	{
 		UPrimitiveComponent* HitComponent = HitResult.GetComponent();
+		HitComponent->SetSimulatePhysics(true);
 		HitComponent->WakeAllRigidBodies();
+		AActor* HitActor = HitResult.GetActor();
+		HitActor->Tags.Add("Grabbed");
+		HitActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	
 		PhysicsHandle->GrabComponentAtLocationWithRotation(HitComponent,
 			NAME_None, 
 			HitResult.ImpactPoint, 
 			GetComponentRotation());
 
-		// Draw 하는 부분
-		/*DrawDebugSphere(World, HitResult.Location, 10, 10, FColor::Yellow, false, 5);
-		DrawDebugSphere(World, HitResult.ImpactPoint, 10, 10, FColor::Purple, false, 5);
-		UE_LOG(LogTemp, Display, TEXT("HitActor : %s"), *HitResult.GetActor()->GetActorNameOrLabel());*/
+		// DrawDebugSphere(World, HitResult.Location, 10, 10, FColor::Yellow, false, 5);
+		// DrawDebugSphere(World, HitResult.ImpactPoint, 10, 10, FColor::Purple, false, 5);
+		// UE_LOG(LogTemp, Display, TEXT("HitActor : %s"), *HitResult.GetActor()->GetActorNameOrLabel());
 	}
-
-	// 발견되지 않을 때
-	//else
-	//{
-	//	DrawDebugSphere(World, End, 10, 10, FColor::Blue, false, 5);
-	//	UE_LOG(LogTemp, Display, TEXT("No Hit Actor!!!"));
-	//}
+	// else
+	// {
+	// 	const FVector Start = GetComponentLocation();
+	// 	const FVector End = Start + GetForwardVector() * MaxGrabDistance;
+	// 	DrawDebugLine(GetWorld(), Start, End, FColor::Red);
+	// 	DrawDebugSphere(World, End, 10, 10, FColor::Blue, false, 5);
+	// 	UE_LOG(LogTemp, Display, TEXT("No Hit Actor!!!"));
+	// }
 }
 
 void UGrabber::Release()
@@ -81,10 +85,11 @@ void UGrabber::Release()
 
 	if(PhysicsHandle->GetGrabbedComponent() != nullptr)
 	{
+		AActor* Actor = PhysicsHandle->GetGrabbedComponent()->GetOwner();
+		Actor->Tags.Remove("Grabbed");
+		UE_LOG(LogTemp, Display, TEXT("Release"));
 		PhysicsHandle->ReleaseComponent();
 	}
-
-	UE_LOG(LogTemp, Display, TEXT("Release"));
 }
 
 UPhysicsHandleComponent* UGrabber::GetPhysicsHandle() const
